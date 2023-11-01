@@ -1,0 +1,11 @@
+diff -up libsndfile-1.0.28/src/sndfile.c.fixfree libsndfile-1.0.28/src/sndfile.c
+--- libsndfile-1.0.28/src/sndfile.c.fixfree	2018-10-15 14:24:26.521941046 +0200
++++ libsndfile-1.0.28/src/sndfile.c	2018-10-15 14:24:26.534940869 +0200
+@@ -339,6 +339,7 @@ sf_open	(const char *path, int mode, SF_
+ 
+ 	if (copy_filename (psf, path) != 0)
+ 	{	sf_errno = psf->error ;
++		free(psf);
+ 		return	NULL ;
+ 		} ;
+ 
