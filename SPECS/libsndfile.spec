@@ -1,7 +1,7 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.0.28
-Release:	13%{?dist}
+Release:	14%{?dist}
 License:	LGPLv2+ and GPLv2+ and BSD
 Group:		System Environment/Libraries
 URL:		http://www.mega-nerd.com/libsndfile/
@@ -21,6 +21,8 @@ Patch9: libsndfile-1.0.28-cve_2018_19662.patch
 # from upstream, for <= 1.0.31, rhbz#1985028
 Patch10:	libsndfile-1.0.31-deb669ee.patch
 Patch11:	libsndfile-1.0.31-ced91d7b.patch
+# from upstream, fix #RHEL-3750, for <= 1.2.2
+Patch12:	libsndfile-1.0.31-pullrequest979.patch
 BuildRequires:	alsa-lib-devel
 BuildRequires:	flac-devel
 BuildRequires:	libogg-devel
@@ -65,18 +67,19 @@ This package contains command line utilities for libsndfile.
 
 %prep
 %setup -q
-%patch0 -p1 -b .systemgsm
-%patch1 -p1 -b .zerodivfix
-%patch2 -p1 -b .revert
-%patch3 -p1 -b .flacbufovfl
-%patch4 -p1 -b .cve2017_6892
-%patch5 -p1 -b .cve2017_12562
-%patch6 -p1 -b .fixfree
-%patch7 -p1 -b .vafix
-%patch8 -p1 -b .CVE_2018_13139
-%patch9 -p1 -b .cve_2018_19662
-%patch10 -p1 -b .deb669ee
-%patch11 -p1 -b .ced91d7b
+%patch -P 0 -p1 -b .systemgsm
+%patch -P 1 -p1 -b .zerodivfix
+%patch -P 2 -p1 -b .revert
+%patch -P 3 -p1 -b .flacbufovfl
+%patch -P 4 -p1 -b .cve2017_6892
+%patch -P 5 -p1 -b .cve2017_12562
+%patch -P 6 -p1 -b .fixfree
+%patch -P 7 -p1 -b .vafix
+%patch -P 8 -p1 -b .CVE_2018_13139
+%patch -P 9 -p1 -b .cve_2018_19662
+%patch -P 10 -p1 -b .deb669ee
+%patch -P 11 -p1 -b .ced91d7b
+%patch -P 12 -p1 -b .pullrequest979
 rm -r src/GSM610
 
 %build
@@ -172,6 +175,9 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
+* Wed Nov 01 2023 Michal Hlavinka <mhlavink@redhat.com> - 1.0.28-14
+- fix integer overflows causing CVE-2022-33065 (#RHEL-3750)
+
 * Fri Oct 14 2022 Michal Hlavinka <mhlavink@redhat.com> - 1.0.28-13
 - rebuild (#2118285)
 

@@ -1,0 +1,362 @@
+diff -up libsndfile-1.0.28/src/aiff.c.pullrequest979 libsndfile-1.0.28/src/aiff.c
+--- libsndfile-1.0.28/src/aiff.c.pullrequest979	2023-11-01 23:49:50.232622966 +0100
++++ libsndfile-1.0.28/src/aiff.c	2023-11-01 23:49:50.246623108 +0100
+@@ -1822,7 +1822,7 @@ static int
+ aiff_read_basc_chunk (SF_PRIVATE * psf, int datasize)
+ {	const char * type_str ;
+ 	basc_CHUNK bc ;
+-	int count ;
++	sf_count_t count ;
+ 
+ 	count = psf_binheader_readf (psf, "E442", &bc.version, &bc.numBeats, &bc.rootNote) ;
+ 	count += psf_binheader_readf (psf, "E222", &bc.scaleType, &bc.sigNumerator, &bc.sigDenominator) ;
+diff -up libsndfile-1.0.28/src/au.c.pullrequest979 libsndfile-1.0.28/src/au.c
+--- libsndfile-1.0.28/src/au.c.pullrequest979	2017-04-01 09:18:02.000000000 +0200
++++ libsndfile-1.0.28/src/au.c	2023-11-01 23:49:50.246623108 +0100
+@@ -291,6 +291,7 @@ static int
+ au_read_header (SF_PRIVATE *psf)
+ {	AU_FMT	au_fmt ;
+ 	int		marker, dword ;
++	sf_count_t data_end ;
+ 
+ 	memset (&au_fmt, 0, sizeof (au_fmt)) ;
+ 	psf_binheader_readf (psf, "pm", 0, &marker) ;
+@@ -317,14 +318,15 @@ au_read_header (SF_PRIVATE *psf)
+ 		return SFE_AU_EMBED_BAD_LEN ;
+ 		} ;
+ 
++	data_end = (sf_count_t) au_fmt.dataoffset + (sf_count_t) au_fmt.datasize ;
+ 	if (psf->fileoffset > 0)
+-	{	psf->filelength = au_fmt.dataoffset + au_fmt.datasize ;
++	{	psf->filelength = data_end ;
+ 		psf_log_printf (psf, "  Data Size   : %d\n", au_fmt.datasize) ;
+ 		}
+-	else if (au_fmt.datasize == -1 || au_fmt.dataoffset + au_fmt.datasize == psf->filelength)
++	else if (au_fmt.datasize == -1 || data_end == psf->filelength)
+ 		psf_log_printf (psf, "  Data Size   : %d\n", au_fmt.datasize) ;
+-	else if (au_fmt.dataoffset + au_fmt.datasize < psf->filelength)
+-	{	psf->filelength = au_fmt.dataoffset + au_fmt.datasize ;
++	else if (data_end < psf->filelength)
++	{	psf->filelength = data_end ;
+ 		psf_log_printf (psf, "  Data Size   : %d\n", au_fmt.datasize) ;
+ 		}
+ 	else
+diff -up libsndfile-1.0.28/src/avr.c.pullrequest979 libsndfile-1.0.28/src/avr.c
+--- libsndfile-1.0.28/src/avr.c.pullrequest979	2017-04-01 09:18:02.000000000 +0200
++++ libsndfile-1.0.28/src/avr.c	2023-11-01 23:49:50.246623108 +0100
+@@ -164,7 +164,7 @@ avr_read_header (SF_PRIVATE *psf)
+ 	psf->endian = SF_ENDIAN_BIG ;
+ 
+  	psf->dataoffset = AVR_HDR_SIZE ;
+-	psf->datalength = hdr.frames * (hdr.rez / 8) ;
++	psf->datalength = (sf_count_t) hdr.frames * (hdr.rez / 8) ;
+ 
+ 	if (psf->fileoffset > 0)
+ 		psf->filelength = AVR_HDR_SIZE + psf->datalength ;
+diff -up libsndfile-1.0.28/src/common.c.pullrequest979 libsndfile-1.0.28/src/common.c
+--- libsndfile-1.0.28/src/common.c.pullrequest979	2023-11-01 23:49:50.237623017 +0100
++++ libsndfile-1.0.28/src/common.c	2023-11-01 23:50:00.446727012 +0100
+@@ -18,6 +18,7 @@
+ 
+ #include <config.h>
+ 
++#include <limits.h>
+ #include <stdarg.h>
+ #include <string.h>
+ #if HAVE_UNISTD_H
+@@ -975,6 +976,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 	double			*doubleptr ;
+ 	char			c ;
+ 	int				byte_count = 0, count = 0 ;
++	int				read_bytes = 0 ;
+ 
+ 	if (! format)
+ 		return psf_ftell (psf) ;
+@@ -983,6 +985,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 
+ 	while ((c = *format++))
+ 	{
++		read_bytes = 0 ;
+ 		if (psf->header.indx + 16 >= psf->header.len && psf_bump_header_allocation (psf, 16))
+ 		{
+ 			va_end (argptr) ;
+@@ -1002,7 +1005,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 					intptr = va_arg (argptr, unsigned int*) ;
+ 					*intptr = 0 ;
+ 					ucptr = (unsigned char*) intptr ;
+-					byte_count += header_read (psf, ucptr, sizeof (int)) ;
++					read_bytes = header_read (psf, ucptr, sizeof (int)) ;
+ 					*intptr = GET_MARKER (ucptr) ;
+ 					break ;
+ 
+@@ -1010,7 +1013,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 					intptr = va_arg (argptr, unsigned int*) ;
+ 					*intptr = 0 ;
+ 					ucptr = (unsigned char*) intptr ;
+-					byte_count += header_read (psf, sixteen_bytes, sizeof (sixteen_bytes)) ;
++					read_bytes = header_read (psf, sixteen_bytes, sizeof (sixteen_bytes)) ;
+ 					{	int k ;
+ 						intdata = 0 ;
+ 						for (k = 0 ; k < 16 ; k++)
+@@ -1022,14 +1025,14 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 			case '1' :
+ 					charptr = va_arg (argptr, char*) ;
+ 					*charptr = 0 ;
+-					byte_count += header_read (psf, charptr, sizeof (char)) ;
++					read_bytes = header_read (psf, charptr, sizeof (char)) ;
+ 					break ;
+ 
+ 			case '2' : /* 2 byte value with the current endian-ness */
+ 					shortptr = va_arg (argptr, unsigned short*) ;
+ 					*shortptr = 0 ;
+ 					ucptr = (unsigned char*) shortptr ;
+-					byte_count += header_read (psf, ucptr, sizeof (short)) ;
++					read_bytes = header_read (psf, ucptr, sizeof (short)) ;
+ 					if (psf->rwf_endian == SF_ENDIAN_BIG)
+ 						*shortptr = GET_BE_SHORT (ucptr) ;
+ 					else
+@@ -1039,7 +1042,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 			case '3' : /* 3 byte value with the current endian-ness */
+ 					intptr = va_arg (argptr, unsigned int*) ;
+ 					*intptr = 0 ;
+-					byte_count += header_read (psf, sixteen_bytes, 3) ;
++					read_bytes = header_read (psf, sixteen_bytes, 3) ;
+ 					if (psf->rwf_endian == SF_ENDIAN_BIG)
+ 						*intptr = GET_BE_3BYTE (sixteen_bytes) ;
+ 					else
+@@ -1050,7 +1053,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 					intptr = va_arg (argptr, unsigned int*) ;
+ 					*intptr = 0 ;
+ 					ucptr = (unsigned char*) intptr ;
+-					byte_count += header_read (psf, ucptr, sizeof (int)) ;
++					read_bytes = header_read (psf, ucptr, sizeof (int)) ;
+ 					if (psf->rwf_endian == SF_ENDIAN_BIG)
+ 						*intptr = psf_get_be32 (ucptr, 0) ;
+ 					else
+@@ -1060,7 +1063,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 			case '8' : /* 8 byte value with the current endian-ness */
+ 					countptr = va_arg (argptr, sf_count_t *) ;
+ 					*countptr = 0 ;
+-					byte_count += header_read (psf, sixteen_bytes, 8) ;
++					read_bytes = header_read (psf, sixteen_bytes, 8) ;
+ 					if (psf->rwf_endian == SF_ENDIAN_BIG)
+ 						countdata = psf_get_be64 (sixteen_bytes, 0) ;
+ 					else
+@@ -1071,7 +1074,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 			case 'f' : /* Float conversion */
+ 					floatptr = va_arg (argptr, float *) ;
+ 					*floatptr = 0.0 ;
+-					byte_count += header_read (psf, floatptr, sizeof (float)) ;
++					read_bytes = header_read (psf, floatptr, sizeof (float)) ;
+ 					if (psf->rwf_endian == SF_ENDIAN_BIG)
+ 						*floatptr = float32_be_read ((unsigned char*) floatptr) ;
+ 					else
+@@ -1081,7 +1084,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 			case 'd' : /* double conversion */
+ 					doubleptr = va_arg (argptr, double *) ;
+ 					*doubleptr = 0.0 ;
+-					byte_count += header_read (psf, doubleptr, sizeof (double)) ;
++					read_bytes = header_read (psf, doubleptr, sizeof (double)) ;
+ 					if (psf->rwf_endian == SF_ENDIAN_BIG)
+ 						*doubleptr = double64_be_read ((unsigned char*) doubleptr) ;
+ 					else
+@@ -1105,7 +1108,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 					charptr = va_arg (argptr, char*) ;
+ 					count = va_arg (argptr, size_t) ;
+ 					memset (charptr, 0, count) ;
+-					byte_count += header_read (psf, charptr, count) ;
++					read_bytes = header_read (psf, charptr, count) ;
+ 					break ;
+ 
+ 			case 'G' :
+@@ -1119,7 +1122,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 						return count ;
+ 						} ;
+ 
+-					byte_count += header_gets (psf, charptr, count) ;
++					read_bytes = header_gets (psf, charptr, count) ;
+ 					break ;
+ 
+ 			case 'z' :
+@@ -1143,7 +1146,7 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 			case 'j' :	/* Seek to position from current position. */
+ 					count = va_arg (argptr, size_t) ;
+ 					header_seek (psf, count, SEEK_CUR) ;
+-					byte_count += count ;
++					read_bytes = count ;
+ 					break ;
+ 
+ 			default :
+@@ -1151,8 +1154,17 @@ psf_binheader_readf (SF_PRIVATE *psf, ch
+ 				psf->error = SFE_INTERNAL ;
+ 				break ;
+ 			} ;
++
++		if (read_bytes > 0 && byte_count > (INT_MAX - read_bytes))
++		{	psf_log_printf (psf, "Header size exceeds INT_MAX. Aborting.", c) ;
++			psf->error = SFE_INTERNAL ;
++			break ;
++		} else
++		{	byte_count += read_bytes ;
+ 		} ;
+ 
++		} ;	/*end while*/
++
+ 	va_end (argptr) ;
+ 
+ 	return byte_count ;
+diff -up libsndfile-1.0.28/src/common.h.pullrequest979 libsndfile-1.0.28/src/common.h
+--- libsndfile-1.0.28/src/common.h.pullrequest979	2023-11-01 23:49:50.230622945 +0100
++++ libsndfile-1.0.28/src/common.h	2023-11-01 23:49:50.246623108 +0100
+@@ -467,7 +467,7 @@ typedef struct sf_private_tag
+ 	sf_count_t		datalength ;	/* Length in bytes of the audio data. */
+ 	sf_count_t		dataend ;		/* Offset to file tailer. */
+ 
+-	int				blockwidth ;	/* Size in bytes of one set of interleaved samples. */
++	sf_count_t		blockwidth ;	/* Size in bytes of one set of interleaved samples. */
+ 	int				bytewidth ;		/* Size in bytes of one sample (one channel). */
+ 
+ 	void			*dither ;
+diff -up libsndfile-1.0.28/src/ima_adpcm.c.pullrequest979 libsndfile-1.0.28/src/ima_adpcm.c
+--- libsndfile-1.0.28/src/ima_adpcm.c.pullrequest979	2016-09-10 10:08:27.000000000 +0200
++++ libsndfile-1.0.28/src/ima_adpcm.c	2023-11-01 23:49:50.247623119 +0100
+@@ -233,7 +233,7 @@ ima_reader_init (SF_PRIVATE *psf, int bl
+ 		case SF_FORMAT_AIFF :
+ 				psf_log_printf (psf, "still need to check block count\n") ;
+ 				pima->decode_block = aiff_ima_decode_block ;
+-				psf->sf.frames = pima->samplesperblock * pima->blocks / pima->channels ;
++				psf->sf.frames = (sf_count_t) pima->samplesperblock * pima->blocks / pima->channels ;
+ 				break ;
+ 
+ 		default :
+diff -up libsndfile-1.0.28/src/ircam.c.pullrequest979 libsndfile-1.0.28/src/ircam.c
+--- libsndfile-1.0.28/src/ircam.c.pullrequest979	2017-04-01 09:18:02.000000000 +0200
++++ libsndfile-1.0.28/src/ircam.c	2023-11-01 23:49:50.247623119 +0100
+@@ -171,35 +171,35 @@ ircam_read_header	(SF_PRIVATE *psf)
+ 	switch (encoding)
+ 	{	case IRCAM_PCM_16 :
+ 				psf->bytewidth = 2 ;
+-				psf->blockwidth = psf->sf.channels * psf->bytewidth ;
++				psf->blockwidth = (sf_count_t) psf->sf.channels * psf->bytewidth ;
+ 
+ 				psf->sf.format = SF_FORMAT_IRCAM | SF_FORMAT_PCM_16 ;
+ 				break ;
+ 
+ 		case IRCAM_PCM_32 :
+ 				psf->bytewidth = 4 ;
+-				psf->blockwidth = psf->sf.channels * psf->bytewidth ;
++				psf->blockwidth = (sf_count_t) psf->sf.channels * psf->bytewidth ;
+ 
+ 				psf->sf.format = SF_FORMAT_IRCAM | SF_FORMAT_PCM_32 ;
+ 				break ;
+ 
+ 		case IRCAM_FLOAT :
+ 				psf->bytewidth = 4 ;
+-				psf->blockwidth = psf->sf.channels * psf->bytewidth ;
++				psf->blockwidth = (sf_count_t) psf->sf.channels * psf->bytewidth ;
+ 
+ 				psf->sf.format = SF_FORMAT_IRCAM | SF_FORMAT_FLOAT ;
+ 				break ;
+ 
+ 		case IRCAM_ALAW :
+ 				psf->bytewidth = 1 ;
+-				psf->blockwidth = psf->sf.channels * psf->bytewidth ;
++				psf->blockwidth = (sf_count_t) psf->sf.channels * psf->bytewidth ;
+ 
+ 				psf->sf.format = SF_FORMAT_IRCAM | SF_FORMAT_ALAW ;
+ 				break ;
+ 
+ 		case IRCAM_ULAW :
+ 				psf->bytewidth = 1 ;
+-				psf->blockwidth = psf->sf.channels * psf->bytewidth ;
++				psf->blockwidth = (sf_count_t) psf->sf.channels * psf->bytewidth ;
+ 
+ 				psf->sf.format = SF_FORMAT_IRCAM | SF_FORMAT_ULAW ;
+ 				break ;
+diff -up libsndfile-1.0.28/src/mat4.c.pullrequest979 libsndfile-1.0.28/src/mat4.c
+--- libsndfile-1.0.28/src/mat4.c.pullrequest979	2017-04-01 09:18:02.000000000 +0200
++++ libsndfile-1.0.28/src/mat4.c	2023-11-01 23:49:50.247623119 +0100
+@@ -104,7 +104,7 @@ mat4_open	(SF_PRIVATE *psf)
+ 
+ 	psf->container_close = mat4_close ;
+ 
+-	psf->blockwidth = psf->bytewidth * psf->sf.channels ;
++	psf->blockwidth = (sf_count_t) psf->bytewidth * psf->sf.channels ;
+ 
+ 	switch (subformat)
+ 	{	case SF_FORMAT_PCM_16 :
+@@ -320,7 +320,7 @@ mat4_read_header (SF_PRIVATE *psf)
+ 				psf->filelength - psf->dataoffset, psf->sf.channels * psf->sf.frames * psf->bytewidth) ;
+ 		}
+ 	else if ((psf->filelength - psf->dataoffset) > psf->sf.channels * psf->sf.frames * psf->bytewidth)
+-		psf->dataend = psf->dataoffset + rows * cols * psf->bytewidth ;
++		psf->dataend = psf->dataoffset + (sf_count_t) rows * (sf_count_t) cols * psf->bytewidth ;
+ 
+ 	psf->datalength = psf->filelength - psf->dataoffset - psf->dataend ;
+ 
+diff -up libsndfile-1.0.28/src/mat5.c.pullrequest979 libsndfile-1.0.28/src/mat5.c
+--- libsndfile-1.0.28/src/mat5.c.pullrequest979	2017-04-01 09:18:02.000000000 +0200
++++ libsndfile-1.0.28/src/mat5.c	2023-11-01 23:49:50.247623119 +0100
+@@ -114,7 +114,7 @@ mat5_open	(SF_PRIVATE *psf)
+ 
+ 	psf->container_close = mat5_close ;
+ 
+-	psf->blockwidth = psf->bytewidth * psf->sf.channels ;
++	psf->blockwidth = (sf_count_t) psf->bytewidth * psf->sf.channels ;
+ 
+ 	switch (subformat)
+ 	{	case SF_FORMAT_PCM_U8 :
+diff -up libsndfile-1.0.28/src/pcm.c.pullrequest979 libsndfile-1.0.28/src/pcm.c
+--- libsndfile-1.0.28/src/pcm.c.pullrequest979	2017-04-02 08:33:16.000000000 +0200
++++ libsndfile-1.0.28/src/pcm.c	2023-11-01 23:49:50.247623119 +0100
+@@ -125,7 +125,7 @@ pcm_init (SF_PRIVATE *psf)
+ 		return SFE_INTERNAL ;
+ 		} ;
+ 
+-	psf->blockwidth = psf->bytewidth * psf->sf.channels ;
++	psf->blockwidth = (sf_count_t) psf->bytewidth * psf->sf.channels ;
+ 
+ 	if ((SF_CODEC (psf->sf.format)) == SF_FORMAT_PCM_S8)
+ 		chars = SF_CHARS_SIGNED ;
+diff -up libsndfile-1.0.28/src/rf64.c.pullrequest979 libsndfile-1.0.28/src/rf64.c
+--- libsndfile-1.0.28/src/rf64.c.pullrequest979	2023-11-01 23:49:50.229622935 +0100
++++ libsndfile-1.0.28/src/rf64.c	2023-11-01 23:49:50.248623129 +0100
+@@ -242,7 +242,7 @@ rf64_read_header (SF_PRIVATE *psf, int *
+ 							} ;
+ 						} ;
+ 
+-					if (psf->filelength != riff_size + 8)
++					if (psf->filelength - 8 != riff_size)
+ 						psf_log_printf (psf, "  Riff size : %D (should be %D)\n", riff_size, psf->filelength - 8) ;
+ 					else
+ 						psf_log_printf (psf, "  Riff size : %D\n", riff_size) ;
+diff -up libsndfile-1.0.28/src/sds.c.pullrequest979 libsndfile-1.0.28/src/sds.c
+--- libsndfile-1.0.28/src/sds.c.pullrequest979	2017-04-01 09:18:02.000000000 +0200
++++ libsndfile-1.0.28/src/sds.c	2023-11-01 23:49:50.248623129 +0100
+@@ -454,7 +454,7 @@ sds_2byte_read (SF_PRIVATE *psf, SDS_PRI
+ 
+ 	ucptr = psds->read_data + 5 ;
+ 	for (k = 0 ; k < 120 ; k += 2)
+-	{	sample = arith_shift_left (ucptr [k], 25) + arith_shift_left (ucptr [k + 1], 18) ;
++	{	sample = arith_shift_left (ucptr [k], 25) | arith_shift_left (ucptr [k + 1], 18) ;
+ 		psds->read_samples [k / 2] = (int) (sample - 0x80000000) ;
+ 		} ;
+ 
+@@ -498,7 +498,7 @@ sds_3byte_read (SF_PRIVATE *psf, SDS_PRI
+ 
+ 	ucptr = psds->read_data + 5 ;
+ 	for (k = 0 ; k < 120 ; k += 3)
+-	{	sample = (((uint32_t) ucptr [k]) << 25) + (ucptr [k + 1] << 18) + (ucptr [k + 2] << 11) ;
++	{	sample = (((uint32_t) ucptr [k]) << 25) | (ucptr [k + 1] << 18) | (ucptr [k + 2] << 11) ;
+ 		psds->read_samples [k / 3] = (int) (sample - 0x80000000) ;
+ 		} ;
+ 
+@@ -542,7 +542,7 @@ sds_4byte_read (SF_PRIVATE *psf, SDS_PRI
+ 
+ 	ucptr = psds->read_data + 5 ;
+ 	for (k = 0 ; k < 120 ; k += 4)
+-	{	sample = (((uint32_t) ucptr [k]) << 25) + (ucptr [k + 1] << 18) + (ucptr [k + 2] << 11) + (ucptr [k + 3] << 4) ;
++	{	sample = (((uint32_t) ucptr [k]) << 25) | (ucptr [k + 1] << 18) | (ucptr [k + 2] << 11) | (ucptr [k + 3] << 4) ;
+ 		psds->read_samples [k / 4] = (int) (sample - 0x80000000) ;
+ 		} ;
+ 
