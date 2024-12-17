@@ -1,7 +1,7 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.0.28
-Release:	14%{?dist}
+Release:	16%{?dist}
 License:	LGPLv2+ and GPLv2+ and BSD
 Group:		System Environment/Libraries
 URL:		http://www.mega-nerd.com/libsndfile/
@@ -23,6 +23,9 @@ Patch10:	libsndfile-1.0.31-deb669ee.patch
 Patch11:	libsndfile-1.0.31-ced91d7b.patch
 # from upstream, fix #RHEL-3750, for <= 1.2.2
 Patch12:	libsndfile-1.0.31-pullrequest979.patch
+# from upstream, for <= 1.2.2, #RHEL-65095
+Patch13:	libsndfile-1.0.28-cve-2024-50612prereq.patch
+Patch14:	libsndfile-1.2.2-cve-2024-50612.patch
 BuildRequires:	alsa-lib-devel
 BuildRequires:	flac-devel
 BuildRequires:	libogg-devel
@@ -80,6 +83,8 @@ This package contains command line utilities for libsndfile.
 %patch -P 10 -p1 -b .deb669ee
 %patch -P 11 -p1 -b .ced91d7b
 %patch -P 12 -p1 -b .pullrequest979
+%patch -P 13 -p1 -b .cve-2024-50612prereq
+%patch -P 14 -p1 -b .cve-2024-50612
 rm -r src/GSM610
 
 %build
@@ -175,6 +180,12 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
+* Tue Nov 26 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.0.28-16
+- fix prerequisit patch (#RHEL-65093)
+
+* Wed Nov 20 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.0.28-15
+- fix crash in ogg vorbis (#RHEL-65093) (CVE-2024-50612)
+
 * Wed Nov 01 2023 Michal Hlavinka <mhlavink@redhat.com> - 1.0.28-14
 - fix integer overflows causing CVE-2022-33065 (#RHEL-3750)
 
