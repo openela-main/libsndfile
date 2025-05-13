@@ -1,7 +1,7 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.0.31
-Release:	8%{?dist}.2
+Release:	9%{?dist}
 License:	LGPLv2+ and GPLv2+ and BSD
 URL:		http://libsndfile.github.io/libsndfile/
 Source0:        https://github.com/libsndfile/libsndfile/releases/download/%{version}/libsndfile-%{version}.tar.bz2
@@ -13,8 +13,7 @@ Patch2:		libsndfile-1.0.31-deb669ee.patch
 Patch3:		libsndfile-1.0.31-ced91d7b.patch
 # from upstream, fix #RHEL-3751, for <= 1.2.2
 Patch4:		libsndfile-1.0.31-pullrequest979.patch
-# from upstream, for <= 1.2.2, #RHEL-65095
-Patch5:		libsndfile-1.2.2-cve-2024-50612.patch
+Patch5:	libsndfile-1.2.2-cve-2024-50612.patch
 BuildRequires:  gcc-c++
 BuildRequires:	alsa-lib-devel
 BuildRequires:	flac-devel
@@ -161,10 +160,7 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
-* Wed Nov 20 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.0.31-8.2
-- add missing patch (#RHEL-65095)
-
-* Tue Nov 19 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.0.31-8.1
+* Tue Nov 19 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.0.31-9
 - fix crash in ogg vorbis (#RHEL-65096) (CVE-2024-50612)
 
 * Wed Nov 01 2023 Michal Hlavinka <mhlavink@redhat.com> - 1.0.31-8
