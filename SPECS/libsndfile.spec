@@ -1,8 +1,8 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.2.2
-Release:	5%{?dist}
-License:	LGPL-2.1-or-later AND GPL-2.0-or-later AND BSD-3-Clause
+Release:	6%{?dist}
+License:	LGPL-2.1 OR LGPL-3.0
 URL:		http://libsndfile.github.io/libsndfile/
 Source0:        https://github.com/libsndfile/libsndfile/releases/download/%{version}/libsndfile-%{version}.tar.xz
 Patch0:		libsndfile-1.0.25-system-gsm.patch
@@ -157,6 +157,9 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
+* Tue Dec 09 2025 Tomas Pelka <tpelka@redhat.com> - 1.2.2-6
+- change the license to LGPL-2.1 OR LGPL-3.0 (#RHEL-85333)
+
 * Wed Nov 20 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.2.2-5
 - fix crash in ogg vorbis (#RHEL-65092) (CVE-2024-50612)
 
