@@ -1,13 +1,15 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.2.2
-Release:	6%{?dist}
+Release:	6%{?dist}.1
 License:	LGPL-2.1 OR LGPL-3.0
 URL:		http://libsndfile.github.io/libsndfile/
 Source0:        https://github.com/libsndfile/libsndfile/releases/download/%{version}/libsndfile-%{version}.tar.xz
 Patch0:		libsndfile-1.0.25-system-gsm.patch
 # from upstream, for <= 1.2.2, #RHEL-65095
 Patch1:		libsndfile-1.2.2-cve-2024-50612.patch
+Patch2:		0001-ima_adpcm-fix-int-overflow-when-calculating-sf.frame.patch
+
 %if %{undefined rhel}
 # used to regenerate test .c sources from .def files
 BuildRequires:  autogen
@@ -63,6 +65,7 @@ This package contains command line utilities for libsndfile.
 %setup -q
 %patch -P0 -p1 -b .system-gsm
 %patch -P 1 -p1 -b .cve-2024-50612
+%patch -P 2 -p1 -b .0002
 rm -r src/GSM610
 
 %build
@@ -157,6 +160,10 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
+* Mon May 18 2026 Wim Taymans <wtaymans@redhat.com> - 1.2.2-6.1
+- apply patch for CVE-2026-37555
+  Resolves: ￼RHEL-174531
+
 * Tue Dec 09 2025 Tomas Pelka <tpelka@redhat.com> - 1.2.2-6
 - change the license to LGPL-2.1 OR LGPL-3.0 (#RHEL-85333)
 
