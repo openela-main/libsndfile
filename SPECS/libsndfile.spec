@@ -1,7 +1,7 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.0.28
-Release:	16%{?dist}
+Release:	17%{?dist}
 License:	LGPLv2+ and GPLv2+ and BSD
 Group:		System Environment/Libraries
 URL:		http://www.mega-nerd.com/libsndfile/
@@ -26,6 +26,8 @@ Patch12:	libsndfile-1.0.31-pullrequest979.patch
 # from upstream, for <= 1.2.2, #RHEL-65095
 Patch13:	libsndfile-1.0.28-cve-2024-50612prereq.patch
 Patch14:	libsndfile-1.2.2-cve-2024-50612.patch
+Patch16:		0001-ima_adpcm-fix-int-overflow-when-calculating-sf.frame.patch
+
 BuildRequires:	alsa-lib-devel
 BuildRequires:	flac-devel
 BuildRequires:	libogg-devel
@@ -85,6 +87,7 @@ This package contains command line utilities for libsndfile.
 %patch -P 12 -p1 -b .pullrequest979
 %patch -P 13 -p1 -b .cve-2024-50612prereq
 %patch -P 14 -p1 -b .cve-2024-50612
+%patch -P 16 -p1 -b .0016
 rm -r src/GSM610
 
 %build
@@ -180,6 +183,10 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
+* Mon May 18 2026 Wim Taymans <wtaymans@redhat.com> - 1.0.28-17
+- apply patch for CVE-2026-37555
+  Resolves: ￼RHEL-174533
+
 * Tue Nov 26 2024 Michal Hlavinka <mhlavink@redhat.com> - 1.0.28-16
 - fix prerequisit patch (#RHEL-65093)
 
