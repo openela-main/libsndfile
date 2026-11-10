@@ -1,7 +1,7 @@
 Summary:	Library for reading and writing sound files
 Name:		libsndfile
 Version:	1.2.2
-Release:	6%{?dist}.1
+Release:	7%{?dist}
 License:	LGPL-2.1 OR LGPL-3.0
 URL:		http://libsndfile.github.io/libsndfile/
 Source0:        https://github.com/libsndfile/libsndfile/releases/download/%{version}/libsndfile-%{version}.tar.xz
@@ -160,9 +160,9 @@ LD_LIBRARY_PATH=$PWD/src/.libs make check
 
 
 %changelog
-* Mon May 18 2026 Wim Taymans <wtaymans@redhat.com> - 1.2.2-6.1
+* Mon May 18 2026 Wim Taymans <wtaymans@redhat.com> - 1.2.2-7
 - apply patch for CVE-2026-37555
-  Resolves: ￼RHEL-174531
+  Resolves: ￼RHEL-174532
 
 * Tue Dec 09 2025 Tomas Pelka <tpelka@redhat.com> - 1.2.2-6
 - change the license to LGPL-2.1 OR LGPL-3.0 (#RHEL-85333)
